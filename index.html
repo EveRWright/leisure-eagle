@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <title>Leisure Eagle</title>
   <style>
-    body { background: #1a1a2e; color: white; font-family: monospace; text-align: center; margin: 0; }
-    canvas { border: 4px solid #fff; background: linear-gradient(#87CEEB, #4a90d9); display: block; margin: 10px auto; cursor: crosshair; }
+    body { background: #1a1a2e; color: white; font-family: monospace; text-align: center; margin: 0; padding: 20px; }
+    canvas { border: 4px solid #fff; background: #87CEEB; display: block; margin: 10px auto; cursor: crosshair; image-rendering: pixelated; }
     .ui { font-size: 20px; margin: 8px; }
     button { background: #fff; color: #1a1a2e; border: none; padding: 8px 16px; font-family: monospace; font-size: 16px; cursor: pointer; margin: 10px; }
   </style>
@@ -14,21 +14,23 @@
   <h1>Leisure Eagle</h1>
   <div class="ui">Score: <span id="score">0</span> | Level: <span id="level">1</span> | Lives: <span id="lives">3</span></div>
   <canvas id="game" width="800" height="450"></canvas>
-  <p>Move mouse or arrows. Dive with space or click. Scoop purple. Avoid white. Larry on shore.</p>
+  <p>Mouse or arrows to move. Space, down, or click to dive. Scoop purple octopuses. Avoid white condoms. Larry throws from the shore.</p>
   <button id="restart" style="display:none">Restart</button>
   <script>
+    // Leisure Eagle — single-file Duck Hunt style game
+    // Controls: mouse/arrows move, space/click/down dive. Scoop octopuses (+10), avoid condoms (lose life). 3 lives. Levels ramp spawn rate.
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const restartBtn = document.getElementById('restart');
     let score = 0, level = 1, lives = 3;
-    let eagle = { x: 400, y: 100, w: 60, h: 40, dy: 0 };
+    let eagle = { x: 400, y: 120, dy: 0 };
     let objects = [];
     let frame = 0;
     let gameOver = false;
 
     function reset() {
       score = 0; level = 1; lives = 3; frame = 0; gameOver = false; objects = [];
-      eagle = { x: 400, y: 100, w: 60, h: 40, dy: 0 };
+      eagle = { x: 400, y: 120, dy: 0 };
       document.getElementById('score').textContent = '0';
       document.getElementById('level').textContent = '1';
       document.getElementById('lives').textContent = '3';
@@ -36,17 +38,18 @@
     }
 
     function spawn() {
-      if (frame % Math.max(40, 120 - level * 8) === 0) {
-        const isCondom = Math.random() < 0.12 + level * 0.03;
+      const interval = Math.max(35, 110 - level * 7);
+      if (frame % interval === 0) {
+        const isCondom = Math.random() < 0.10 + level * 0.035;
         objects.push({
-          x: Math.random() * 700 + 50,
-          y: 360 + Math.random() * 40,
+          x: 80 + Math.random() * 640,
+          y: 370 + Math.random() * 30,
           type: isCondom ? 'condom' : 'octopus',
-          speed: 1.2 + level * 0.25
+          speed: 1.1 + level * 0.22
         });
       }
-      if (frame % 280 === 0 && Math.random() < 0.35) {
-        objects.push({ x: 30 + Math.random()*140, y: 270, type: 'larry', speed: 0, life: 200 });
+      if (frame % 260 === 0 && Math.random() < 0.38) {
+        objects.push({ x: 20 + Math.random() * 120, y: 265, type: 'larry', speed: 0, life: 220 });
       }
     }
 
@@ -55,69 +58,162 @@
       frame++;
       spawn();
       eagle.y += eagle.dy;
-      eagle.dy *= 0.85;
-      if (eagle.y < 60) eagle.y = 60;
-      if (eagle.y > 220) eagle.y = 220;
+      eagle.dy *= 0.82;
+      if (eagle.y < 70) eagle.y = 70;
+      if (eagle.y > 200) eagle.y = 200;
 
       objects = objects.filter(o => {
         o.y -= o.speed;
         if (o.type === 'larry' && o.life) o.life--;
-        if (Math.abs(o.x - eagle.x) < 45 && Math.abs(o.y - eagle.y) < 35) {
-          if (o.type === 'octopus') { score += 10; document.getElementById('score').textContent = score; return false; }
-          if (o.type === 'condom') { 
-            lives--; 
-            document.getElementById('lives').textContent = lives; 
-            if (lives <= 0) { gameOver = true; restartBtn.style.display = 'inline-block'; }
-            return false; 
+        const dx = Math.abs(o.x - eagle.x);
+        const dy = Math.abs(o.y - eagle.y);
+        if (dx < 42 && dy < 32) {
+          if (o.type === 'octopus') {
+            score += 10;
+            document.getElementById('score').textContent = score;
+            return false;
+          }
+          if (o.type === 'condom') {
+            lives--;
+            document.getElementById('lives').textContent = lives;
+            if (lives <= 0) {
+              gameOver = true;
+              restartBtn.style.display = 'inline-block';
+            }
+            return false;
           }
         }
-        return o.y > -40 && (o.type !== 'larry' || (o.life && o.life > 0));
+        return o.y > -30 && (o.type !== 'larry' || (o.life && o.life > 0));
       });
 
-      if (score >= level * 60) { level++; document.getElementById('level').textContent = level; }
+      if (score >= level * 50) {
+        level++;
+        document.getElementById('level').textContent = level;
+      }
+    }
+
+    function drawPixelEagle(x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      // body
+      ctx.fillStyle = '#5c3317';
+      ctx.fillRect(-28, -8, 40, 18);
+      // wing
+      ctx.fillStyle = '#3d2314';
+      ctx.fillRect(-22, -18, 28, 12);
+      ctx.fillRect(-18, -24, 18, 8);
+      // head
+      ctx.fillStyle = '#f5f5f5';
+      ctx.fillRect(8, -10, 18, 14);
+      // beak
+      ctx.fillStyle = '#ffcc00';
+      ctx.fillRect(24, -4, 12, 6);
+      ctx.fillStyle = '#e6b800';
+      ctx.fillRect(32, -2, 6, 4);
+      // eye
+      ctx.fillStyle = '#000';
+      ctx.fillRect(16, -6, 4, 4);
+      ctx.restore();
+    }
+
+    function drawPixelOctopus(x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = '#8a2be2';
+      ctx.beginPath();
+      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.fill();
+      // tentacles
+      ctx.fillStyle = '#7b1fa2';
+      ctx.fillRect(-10, 8, 6, 10);
+      ctx.fillRect(-2, 10, 6, 12);
+      ctx.fillRect(6, 8, 6, 10);
+      // eyes
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(-6, -4, 4, 4);
+      ctx.fillRect(2, -4, 4, 4);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(-5, -3, 2, 2);
+      ctx.fillRect(3, -3, 2, 2);
+      ctx.restore();
+    }
+
+    function drawPixelCondom(x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-6, -14, 12, 26);
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fillRect(-5, 8, 10, 6);
+      ctx.fillStyle = '#cccccc';
+      ctx.fillRect(-4, -12, 8, 4);
+      ctx.restore();
+    }
+
+    function drawPixelLarry(x, y) {
+      ctx.save();
+      ctx.translate(x, y);
+      // body
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-12, -20, 24, 32);
+      // head
+      ctx.fillStyle = '#f5d0a9';
+      ctx.fillRect(-8, -32, 16, 14);
+      // hair / hat suggestion
+      ctx.fillStyle = '#222';
+      ctx.fillRect(-9, -34, 18, 6);
+      // suit details
+      ctx.fillStyle = '#ddd';
+      ctx.fillRect(-10, -18, 20, 8);
+      // arms
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-18, -10, 8, 6);
+      ctx.fillRect(10, -10, 8, 6);
+      ctx.restore();
     }
 
     function draw() {
+      // sky
       ctx.fillStyle = '#87CEEB';
       ctx.fillRect(0, 0, 800, 450);
+      // water
       ctx.fillStyle = '#4a90d9';
-      ctx.fillRect(0, 310, 800, 140);
+      ctx.fillRect(0, 320, 800, 130);
+      // water lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, 340 + i * 18);
+        ctx.lineTo(800, 340 + i * 18);
+        ctx.stroke();
+      }
+      // shore
       ctx.fillStyle = '#c2b280';
-      ctx.fillRect(0, 255, 220, 55);
+      ctx.fillRect(0, 250, 200, 70);
+      ctx.fillStyle = '#a89860';
+      ctx.fillRect(0, 300, 200, 20);
 
       // eagle
-      ctx.fillStyle = '#8B4513';
-      ctx.fillRect(eagle.x - 30, eagle.y, eagle.w, eagle.h);
-      ctx.fillStyle = '#FFD700';
-      ctx.fillRect(eagle.x + 25, eagle.y + 12, 18, 8);
+      drawPixelEagle(eagle.x, eagle.y);
 
       objects.forEach(o => {
-        if (o.type === 'octopus') { 
-          ctx.fillStyle = '#9370DB'; 
-          ctx.beginPath(); ctx.arc(o.x, o.y, 16, 0, Math.PI*2); ctx.fill();
-          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(o.x-4, o.y-4, 4, 0, Math.PI*2); ctx.fill();
-        }
-        if (o.type === 'condom') { 
-          ctx.fillStyle = '#fff'; 
-          ctx.fillRect(o.x-6, o.y, 14, 28);
-          ctx.fillStyle = '#ddd'; ctx.fillRect(o.x-4, o.y+20, 10, 6);
-        }
-        if (o.type === 'larry') { 
-          ctx.fillStyle = '#fff'; ctx.fillRect(o.x, o.y, 32, 42);
-          ctx.fillStyle = '#000'; ctx.fillRect(o.x+6, o.y+6, 20, 12);
-          ctx.fillStyle = '#ff0'; ctx.fillRect(o.x+10, o.y+22, 12, 8);
-        }
+        if (o.type === 'octopus') drawPixelOctopus(o.x, o.y);
+        if (o.type === 'condom') drawPixelCondom(o.x, o.y);
+        if (o.type === 'larry') drawPixelLarry(o.x, o.y);
       });
 
       if (gameOver) {
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(200, 150, 400, 120);
-        ctx.fillStyle = 'red';
-        ctx.font = '36px monospace';
-        ctx.fillText('GAME OVER', 280, 200);
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(180, 140, 440, 140);
+        ctx.fillStyle = '#ff4444';
+        ctx.font = '40px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('GAME OVER', 400, 200);
         ctx.fillStyle = '#fff';
         ctx.font = '18px monospace';
-        ctx.fillText('Condom got the eagle', 290, 235);
+        ctx.fillText('Condom got the eagle', 400, 235);
+        ctx.textAlign = 'left';
       }
     }
 
@@ -130,16 +226,19 @@
 
     document.addEventListener('keydown', e => {
       if (gameOver) return;
-      if (e.key === 'ArrowLeft') eagle.x = Math.max(40, eagle.x - 18);
-      if (e.key === 'ArrowRight') eagle.x = Math.min(760, eagle.x + 18);
-      if (e.key === ' ' || e.key === 'ArrowDown') eagle.dy = 10;
+      if (e.key === 'ArrowLeft') eagle.x = Math.max(50, eagle.x - 20);
+      if (e.key === 'ArrowRight') eagle.x = Math.min(750, eagle.x + 20);
+      if (e.key === ' ' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        eagle.dy = 11;
+      }
     });
     canvas.addEventListener('mousemove', e => {
       if (gameOver) return;
       const rect = canvas.getBoundingClientRect();
-      eagle.x = e.clientX - rect.left;
+      eagle.x = Math.max(50, Math.min(750, e.clientX - rect.left));
     });
-    canvas.addEventListener('click', () => { if (!gameOver) eagle.dy = 10; });
+    canvas.addEventListener('click', () => { if (!gameOver) eagle.dy = 11; });
     restartBtn.addEventListener('click', reset);
   </script>
 </body>
