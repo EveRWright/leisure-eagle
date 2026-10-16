@@ -4,32 +4,108 @@
   <meta charset="UTF-8">
   <title>Leisure Eagle</title>
   <style>
-    body { background: #1a1a2e; color: white; font-family: monospace; text-align: center; }
-    canvas { border: 2px solid #fff; background: #4a90d9; }
-    .score { font-size: 24px; margin: 10px; }
+    body { background: #1a1a2e; color: white; font-family: monospace; text-align: center; margin: 0; }
+    canvas { border: 4px solid #fff; background: linear-gradient(#87CEEB, #4a90d9); display: block; margin: 10px auto; }
+    .ui { font-size: 20px; margin: 8px; }
   </style>
 </head>
 <body>
   <h1>Leisure Eagle</h1>
-  <div class="score">Score: <span id="score">0</span> | Level: <span id="level">1</span></div>
-  <canvas id="game" width="800" height="400"></canvas>
-  <p>Click or tap to dive. Avoid the white things. Scoop the purple ones.</p>
+  <div class="ui">Score: <span id="score">0</span> | Level: <span id="level">1</span> | Lives: <span id="lives">3</span></div>
+  <canvas id="game" width="800" height="450"></canvas>
+  <p>Arrow keys or mouse to move. Dive with space or click. Scoop purple octopuses. Avoid white condoms. Larry appears on shore.</p>
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
-    let score = 0, level = 1;
-    // Placeholder game loop - sprites would be drawn here
-    function loop() {
+    let score = 0, level = 1, lives = 3;
+    let eagle = { x: 400, y: 100, w: 60, h: 40, dy: 0 };
+    let objects = [];
+    let frame = 0;
+    let gameOver = false;
+
+    function spawn() {
+      if (frame % (120 - level * 5) === 0) {
+        const isCondom = Math.random() < 0.15 + level * 0.02;
+        objects.push({
+          x: Math.random() * 700 + 50,
+          y: 350 + Math.random() * 50,
+          type: isCondom ? 'condom' : 'octopus',
+          speed: 1 + level * 0.3
+        });
+      }
+      if (frame % 300 === 0 && Math.random() < 0.4) {
+        // Larry appears briefly
+        objects.push({ x: 50 + Math.random()*100, y: 280, type: 'larry', speed: 0, life: 180 });
+      }
+    }
+
+    function update() {
+      if (gameOver) return;
+      frame++;
+      spawn();
+      eagle.y += eagle.dy;
+      eagle.dy *= 0.9;
+      if (eagle.y < 50) eagle.y = 50;
+      if (eagle.y > 200) eagle.y = 200;
+
+      objects = objects.filter(o => {
+        o.y -= o.speed;
+        if (o.type === 'larry' && o.life) o.life--;
+        // simple collision
+        if (Math.abs(o.x - eagle.x) < 40 && Math.abs(o.y - eagle.y) < 30) {
+          if (o.type === 'octopus') { score += 10; document.getElementById('score').textContent = score; return false; }
+          if (o.type === 'condom') { lives--; document.getElementById('lives').textContent = lives; if (lives <= 0) gameOver = true; return false; }
+        }
+        return o.y > -50 && (o.type !== 'larry' || o.life > 0);
+      });
+
+      if (score > level * 50) { level++; document.getElementById('level').textContent = level; }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#87CEEB';
+      ctx.fillRect(0, 0, 800, 450);
+      // water
       ctx.fillStyle = '#4a90d9';
-      ctx.fillRect(0, 0, 800, 400);
-      ctx.fillStyle = 'white';
-      ctx.font = '20px monospace';
-      ctx.fillText('Eagle flies here (pixel sprite pending)', 200, 200);
-      ctx.fillText('Octopuses & condoms spawn in water', 180, 230);
+      ctx.fillRect(0, 300, 800, 150);
+      // shore
+      ctx.fillStyle = '#c2b280';
+      ctx.fillRect(0, 250, 200, 50);
+
+      // eagle (simple rect + beak)
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(eagle.x, eagle.y, eagle.w, eagle.h);
+      ctx.fillStyle = '#FFD700';
+      ctx.fillRect(eagle.x + 50, eagle.y + 10, 15, 10);
+
+      objects.forEach(o => {
+        if (o.type === 'octopus') { ctx.fillStyle = '#9370DB'; ctx.beginPath(); ctx.arc(o.x, o.y, 15, 0, Math.PI*2); ctx.fill(); }
+        if (o.type === 'condom') { ctx.fillStyle = '#fff'; ctx.fillRect(o.x, o.y, 12, 25); }
+        if (o.type === 'larry') { ctx.fillStyle = '#fff'; ctx.fillRect(o.x, o.y, 30, 40); ctx.fillStyle = '#000'; ctx.fillRect(o.x+5, o.y+5, 20, 10); }
+      });
+
+      if (gameOver) {
+        ctx.fillStyle = 'red';
+        ctx.font = '40px monospace';
+        ctx.fillText('GAME OVER', 280, 200);
+        ctx.font = '20px monospace';
+        ctx.fillText('Condom got ya', 300, 240);
+      }
+    }
+
+    function loop() {
+      update();
+      draw();
       requestAnimationFrame(loop);
     }
     loop();
-    // TODO: add input, collision, spawn logic
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft') eagle.x = Math.max(0, eagle.x - 15);
+      if (e.key === 'ArrowRight') eagle.x = Math.min(740, eagle.x + 15);
+      if (e.key === ' ' || e.key === 'ArrowDown') eagle.dy = 8;
+    });
+    canvas.addEventListener('click', () => eagle.dy = 8);
   </script>
 </body>
 </html>
