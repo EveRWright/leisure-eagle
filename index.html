@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Leisure Eagle</title>
+  <style>
+    body { background: #1a1a2e; color: white; font-family: monospace; text-align: center; }
+    canvas { border: 2px solid #fff; background: #4a90d9; }
+    .score { font-size: 24px; margin: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Leisure Eagle</h1>
+  <div class="score">Score: <span id="score">0</span> | Level: <span id="level">1</span></div>
+  <canvas id="game" width="800" height="400"></canvas>
+  <p>Click or tap to dive. Avoid the white things. Scoop the purple ones.</p>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    let score = 0, level = 1;
+    // Placeholder game loop - sprites would be drawn here
+    function loop() {
+      ctx.fillStyle = '#4a90d9';
+      ctx.fillRect(0, 0, 800, 400);
+      ctx.fillStyle = 'white';
+      ctx.font = '20px monospace';
+      ctx.fillText('Eagle flies here (pixel sprite pending)', 200, 200);
+      ctx.fillText('Octopuses & condoms spawn in water', 180, 230);
+      requestAnimationFrame(loop);
+    }
+    loop();
+    // TODO: add input, collision, spawn logic
+  </script>
+</body>
+</html>
