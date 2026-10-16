@@ -5,37 +5,48 @@
   <title>Leisure Eagle</title>
   <style>
     body { background: #1a1a2e; color: white; font-family: monospace; text-align: center; margin: 0; }
-    canvas { border: 4px solid #fff; background: linear-gradient(#87CEEB, #4a90d9); display: block; margin: 10px auto; }
+    canvas { border: 4px solid #fff; background: linear-gradient(#87CEEB, #4a90d9); display: block; margin: 10px auto; cursor: crosshair; }
     .ui { font-size: 20px; margin: 8px; }
+    button { background: #fff; color: #1a1a2e; border: none; padding: 8px 16px; font-family: monospace; font-size: 16px; cursor: pointer; margin: 10px; }
   </style>
 </head>
 <body>
   <h1>Leisure Eagle</h1>
   <div class="ui">Score: <span id="score">0</span> | Level: <span id="level">1</span> | Lives: <span id="lives">3</span></div>
   <canvas id="game" width="800" height="450"></canvas>
-  <p>Arrow keys or mouse to move. Dive with space or click. Scoop purple octopuses. Avoid white condoms. Larry appears on shore.</p>
+  <p>Move mouse or arrows. Dive with space or click. Scoop purple. Avoid white. Larry on shore.</p>
+  <button id="restart" style="display:none">Restart</button>
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
+    const restartBtn = document.getElementById('restart');
     let score = 0, level = 1, lives = 3;
     let eagle = { x: 400, y: 100, w: 60, h: 40, dy: 0 };
     let objects = [];
     let frame = 0;
     let gameOver = false;
 
+    function reset() {
+      score = 0; level = 1; lives = 3; frame = 0; gameOver = false; objects = [];
+      eagle = { x: 400, y: 100, w: 60, h: 40, dy: 0 };
+      document.getElementById('score').textContent = '0';
+      document.getElementById('level').textContent = '1';
+      document.getElementById('lives').textContent = '3';
+      restartBtn.style.display = 'none';
+    }
+
     function spawn() {
-      if (frame % (120 - level * 5) === 0) {
-        const isCondom = Math.random() < 0.15 + level * 0.02;
+      if (frame % Math.max(40, 120 - level * 8) === 0) {
+        const isCondom = Math.random() < 0.12 + level * 0.03;
         objects.push({
           x: Math.random() * 700 + 50,
-          y: 350 + Math.random() * 50,
+          y: 360 + Math.random() * 40,
           type: isCondom ? 'condom' : 'octopus',
-          speed: 1 + level * 0.3
+          speed: 1.2 + level * 0.25
         });
       }
-      if (frame % 300 === 0 && Math.random() < 0.4) {
-        // Larry appears briefly
-        objects.push({ x: 50 + Math.random()*100, y: 280, type: 'larry', speed: 0, life: 180 });
+      if (frame % 280 === 0 && Math.random() < 0.35) {
+        objects.push({ x: 30 + Math.random()*140, y: 270, type: 'larry', speed: 0, life: 200 });
       }
     }
 
@@ -44,52 +55,69 @@
       frame++;
       spawn();
       eagle.y += eagle.dy;
-      eagle.dy *= 0.9;
-      if (eagle.y < 50) eagle.y = 50;
-      if (eagle.y > 200) eagle.y = 200;
+      eagle.dy *= 0.85;
+      if (eagle.y < 60) eagle.y = 60;
+      if (eagle.y > 220) eagle.y = 220;
 
       objects = objects.filter(o => {
         o.y -= o.speed;
         if (o.type === 'larry' && o.life) o.life--;
-        // simple collision
-        if (Math.abs(o.x - eagle.x) < 40 && Math.abs(o.y - eagle.y) < 30) {
+        if (Math.abs(o.x - eagle.x) < 45 && Math.abs(o.y - eagle.y) < 35) {
           if (o.type === 'octopus') { score += 10; document.getElementById('score').textContent = score; return false; }
-          if (o.type === 'condom') { lives--; document.getElementById('lives').textContent = lives; if (lives <= 0) gameOver = true; return false; }
+          if (o.type === 'condom') { 
+            lives--; 
+            document.getElementById('lives').textContent = lives; 
+            if (lives <= 0) { gameOver = true; restartBtn.style.display = 'inline-block'; }
+            return false; 
+          }
         }
-        return o.y > -50 && (o.type !== 'larry' || o.life > 0);
+        return o.y > -40 && (o.type !== 'larry' || (o.life && o.life > 0));
       });
 
-      if (score > level * 50) { level++; document.getElementById('level').textContent = level; }
+      if (score >= level * 60) { level++; document.getElementById('level').textContent = level; }
     }
 
     function draw() {
       ctx.fillStyle = '#87CEEB';
       ctx.fillRect(0, 0, 800, 450);
-      // water
       ctx.fillStyle = '#4a90d9';
-      ctx.fillRect(0, 300, 800, 150);
-      // shore
+      ctx.fillRect(0, 310, 800, 140);
       ctx.fillStyle = '#c2b280';
-      ctx.fillRect(0, 250, 200, 50);
+      ctx.fillRect(0, 255, 220, 55);
 
-      // eagle (simple rect + beak)
+      // eagle
       ctx.fillStyle = '#8B4513';
-      ctx.fillRect(eagle.x, eagle.y, eagle.w, eagle.h);
+      ctx.fillRect(eagle.x - 30, eagle.y, eagle.w, eagle.h);
       ctx.fillStyle = '#FFD700';
-      ctx.fillRect(eagle.x + 50, eagle.y + 10, 15, 10);
+      ctx.fillRect(eagle.x + 25, eagle.y + 12, 18, 8);
 
       objects.forEach(o => {
-        if (o.type === 'octopus') { ctx.fillStyle = '#9370DB'; ctx.beginPath(); ctx.arc(o.x, o.y, 15, 0, Math.PI*2); ctx.fill(); }
-        if (o.type === 'condom') { ctx.fillStyle = '#fff'; ctx.fillRect(o.x, o.y, 12, 25); }
-        if (o.type === 'larry') { ctx.fillStyle = '#fff'; ctx.fillRect(o.x, o.y, 30, 40); ctx.fillStyle = '#000'; ctx.fillRect(o.x+5, o.y+5, 20, 10); }
+        if (o.type === 'octopus') { 
+          ctx.fillStyle = '#9370DB'; 
+          ctx.beginPath(); ctx.arc(o.x, o.y, 16, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(o.x-4, o.y-4, 4, 0, Math.PI*2); ctx.fill();
+        }
+        if (o.type === 'condom') { 
+          ctx.fillStyle = '#fff'; 
+          ctx.fillRect(o.x-6, o.y, 14, 28);
+          ctx.fillStyle = '#ddd'; ctx.fillRect(o.x-4, o.y+20, 10, 6);
+        }
+        if (o.type === 'larry') { 
+          ctx.fillStyle = '#fff'; ctx.fillRect(o.x, o.y, 32, 42);
+          ctx.fillStyle = '#000'; ctx.fillRect(o.x+6, o.y+6, 20, 12);
+          ctx.fillStyle = '#ff0'; ctx.fillRect(o.x+10, o.y+22, 12, 8);
+        }
       });
 
       if (gameOver) {
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(200, 150, 400, 120);
         ctx.fillStyle = 'red';
-        ctx.font = '40px monospace';
+        ctx.font = '36px monospace';
         ctx.fillText('GAME OVER', 280, 200);
-        ctx.font = '20px monospace';
-        ctx.fillText('Condom got ya', 300, 240);
+        ctx.fillStyle = '#fff';
+        ctx.font = '18px monospace';
+        ctx.fillText('Condom got the eagle', 290, 235);
       }
     }
 
@@ -101,11 +129,18 @@
     loop();
 
     document.addEventListener('keydown', e => {
-      if (e.key === 'ArrowLeft') eagle.x = Math.max(0, eagle.x - 15);
-      if (e.key === 'ArrowRight') eagle.x = Math.min(740, eagle.x + 15);
-      if (e.key === ' ' || e.key === 'ArrowDown') eagle.dy = 8;
+      if (gameOver) return;
+      if (e.key === 'ArrowLeft') eagle.x = Math.max(40, eagle.x - 18);
+      if (e.key === 'ArrowRight') eagle.x = Math.min(760, eagle.x + 18);
+      if (e.key === ' ' || e.key === 'ArrowDown') eagle.dy = 10;
     });
-    canvas.addEventListener('click', () => eagle.dy = 8);
+    canvas.addEventListener('mousemove', e => {
+      if (gameOver) return;
+      const rect = canvas.getBoundingClientRect();
+      eagle.x = e.clientX - rect.left;
+    });
+    canvas.addEventListener('click', () => { if (!gameOver) eagle.dy = 10; });
+    restartBtn.addEventListener('click', reset);
   </script>
 </body>
 </html>
